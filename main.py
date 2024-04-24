@@ -1,3 +1,4 @@
+import os
 from server import keep_alive
 
 import telebot
@@ -8,8 +9,8 @@ from geopy.geocoders import Nominatim
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-bot_token = '6909613047:AAEO5PVFYKxT_yHkg_ajtc0WWZA4rluXS7A'
-weather_token = '2b444d97b11e13c9f3b4e580a270769e'
+bot_token = os.environ.get('bot_token')
+weather_token = os.environ.get('weather_token')
 
 bot = telebot.TeleBot(bot_token)
 
