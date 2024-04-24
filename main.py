@@ -1,0 +1,137 @@
+import os
+from server import keep_alive
+
+import telebot
+import requests
+import json
+import pickle
+from geopy.geocoders import Nominatim
+from telebot import types
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+bot_token = os.environ.get('bot_token')
+weather_token = os.environ.get('weather_token')
+
+bot = telebot.TeleBot(bot_token)
+
+with open('geodata.p', 'rb') as file:
+    try:
+        geodata = pickle.load(file)
+    except EOFError:
+        geodata = dict()
+
+weathericons = {'01' : u'\U00002600', 
+                '02' : '☁', 
+                '03' : '⛅', 
+                '04' : '🌫', 
+                '09' : u'\U00002614', 
+                '10' : u'\U00002614', 
+                '11' : u'\U0001F4A8',
+                '13' : u'\U00002744'}
+
+# инициализация меню с командами
+locationbutton = types.BotCommand('location', 'сменить локацию')
+weatherbutton = types.BotCommand('weather', 'показать погоду сейчас')
+bot.set_my_commands([weatherbutton, locationbutton])
+
+@bot.message_handler(commands=['start', 'location'])
+def get_user_location(message):
+    chatid = message.chat.id
+    bot.clear_step_handler_by_chat_id(chatid)
+    
+    if message.text == '/start': 
+        bot.send_message(chatid, 'привет')
+    curr_message = bot.send_message(chatid, 'напиши название города, в котором хочешь посмотреть погоду')
+    bot.register_next_step_handler(curr_message, send_weather)
+    return
+
+
+@bot.message_handler(commands=['weather'])
+def weather(message):
+    chatid = message.chat.id
+    bot.clear_step_handler_by_chat_id(chatid)
+    
+    global geodata
+    if geodata.get(message.chat.id) is None:
+        curr_message = bot.send_message(chatid, 'напиши название города, в котором хочешь посмотреть погоду')
+        bot.register_next_step_handler(curr_message, send_weather)
+    else: 
+        send_weather(message, False)
+    return
+    
+    
+def send_weather(message, getlocation = True):
+    if getlocation and message.text in ['/location', '/weather', '/start']:
+        bot.send_message(message.chat.id, 'такого города не существует, попробуй заново', reply_markup=no_location_markup())
+        return
+    
+    replymsg = bot.send_message(message.chat.id, 'секунду, твой запрос обрабатывается...')
+    
+    global geodata
+    if getlocation:
+        lat, long = locate_city(message)
+        geodata[message.chat.id] = (lat, long)
+        
+    weatherdata = get_weather(geodata[message.chat.id][0], geodata[message.chat.id][1])
+    
+    with open('info.txt', 'w') as file:
+        file.write(json.dumps(weatherdata))
+        
+    with open('geodata.p', 'wb') as file:
+        pickle.dump(geodata, file)
+        
+    iconstr = weatherdata['list'][0]['weather'][0]['icon'][:-1]
+    description = 'сейчас ' + weatherdata['list'][0]['weather'][0]['description'] + ' ' + weathericons.get(iconstr, ' ') + '\n'
+    temperature = '\n' + 'на улице ' + str(weatherdata['list'][0]['main']['temp']) + '°C,'
+    feelslike = '\n' + 'ощущается как ' + str(weatherdata['list'][0]['main']['feels_like']) + '°C' + '\n'
+    humidity = '\n' + 'влажность ' + str(weatherdata['list'][0]['main']['humidity']) + '%'
+    wind = '\n' + 'ветер ' + str(round(weatherdata['list'][0]['wind']['speed'])) + ' м/с'
+    
+    bot.send_message(message.chat.id, description +  temperature +  feelslike + humidity + wind, parse_mode='Markdown', reply_markup=base_keyboard_markup())
+    bot.delete_message(message.chat.id, replymsg.message_id)
+    
+    
+def locate_city(message):
+    place = message.text
+    geocoder = Nominatim(user_agent='my_app')
+    
+    try:
+        locdata = geocoder.geocode(place)
+        latitude, longitude = round(locdata.latitude, 5), round(locdata.longitude, 5)
+        return latitude, longitude
+    except AttributeError:
+        bot.send_message(message.chat.id, 'город не найден, попробуй заново', reply_markup=no_location_markup())
+        return
+   
+        
+def get_weather(latitude, longitude):
+    api = 'https://api.openweathermap.org/data/2.5/forecast?lat={}&lon={}&appid={}'.format(latitude, longitude, weather_token)
+    response = requests.get(api, params={'units': 'metric', 'lang': 'ru'})
+    return response.json()
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    msg = call.message
+    if call.data == 'new_weather':
+        bot.edit_message_reply_markup(msg.chat.id, msg.message_id, '')
+        weather(msg)
+    elif call.data == 'new_location':
+        bot.edit_message_reply_markup(msg.chat.id, msg.message_id, '')
+        get_user_location(call.message)
+        
+        
+def base_keyboard_markup():
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton('погода сейчас', callback_data='new_weather'), 
+               InlineKeyboardButton('сменить локацию', callback_data='new_location'))
+    return markup
+
+
+def no_location_markup():
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton('сменить локацию', callback_data='new_location'))
+    return markup
+     
+keep_alive()
+bot.infinity_polling()
