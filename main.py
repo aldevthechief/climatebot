@@ -25,7 +25,7 @@ savefiledir = os.path.join(repodir, 'geodata.p')
 try:
     repo = Repo(repodir)
 except:
-    repo = Repo.clone_from('https://github.com/aldevthechief/climate-bot.git', repodir)
+    repo = Repo.clone_from('git@github.com:aldevthechief/climate-bot.git', repodir)
 
 with open(savefiledir, 'rb') as file:
     try:
