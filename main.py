@@ -13,6 +13,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 bot_token = os.environ.get('bot_token')
 weather_token = os.environ.get('weather_token')
+username = os.environ.get('git_username')
+git_token = os.environ.get('git_token')
 
 # bot_token = '6909613047:AAEO5PVFYKxT_yHkg_ajtc0WWZA4rluXS7A'
 # weather_token = '2b444d97b11e13c9f3b4e580a270769e'
@@ -22,10 +24,11 @@ bot = telebot.TeleBot(bot_token, threaded=True)
 # фокусы с гитом
 repodir = os.path.join(os.getcwd(), 'gitdir')
 savefiledir = os.path.join(repodir, 'geodata.p')
+remotelink = f'https://{username}:{git_token}@github.com/aldevthechief/climate-bot.git'
 try:
     repo = Repo(repodir)
 except:
-    repo = Repo.clone_from('git@github.com:aldevthechief/climate-bot.git', repodir)
+    repo = Repo.clone_from(remotelink, repodir)
 
 with open(savefiledir, 'rb') as file:
     try:
