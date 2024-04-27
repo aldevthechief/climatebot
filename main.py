@@ -21,7 +21,6 @@ git_token = os.environ.get('git_token')
 
 bot = telebot.TeleBot(bot_token, threaded=True)
 
-# фокусы с гитом
 repodir = os.path.join(os.getcwd(), 'gitdir')
 savefiledir = os.path.join(repodir, 'geodata.p')
 remotelink = f'https://{username}:{git_token}@github.com/aldevthechief/climate-bot.git'
