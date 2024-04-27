@@ -6,33 +6,31 @@ from time import sleep
 import telebot
 import requests
 import json
-import pickle
 from geopy.geocoders import Nominatim
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 bot_token = os.environ.get('bot_token')
 weather_token = os.environ.get('weather_token')
-username = os.environ.get('git_username')
-git_token = os.environ.get('git_token')
 
-# bot_token = '6909613047:AAEO5PVFYKxT_yHkg_ajtc0WWZA4rluXS7A'
-# weather_token = '2b444d97b11e13c9f3b4e580a270769e'
+git_username = os.environ.get('git_username')
+git_token = os.environ.get('git_token')
 
 bot = telebot.TeleBot(bot_token, threaded=True)
 
-repodir = os.path.join(os.getcwd(), 'gitdir')
-savefiledir = os.path.join(repodir, 'geodata.p')
-remotelink = f'https://{username}:{git_token}@github.com/aldevthechief/climate-bot.git'
-try:
-    repo = Repo(repodir)
-except:
-    repo = Repo.clone_from(remotelink, repodir)
+remotelink = f'https://{git_username}:{git_token}@github.com/aldevthechief/climate-bot.git'
+gitdir = os.path.join(os.getcwd(), 'data')
 
-with open(savefiledir, 'rb') as file:
+try:
+    repo = Repo(gitdir)
+except:
+    repo = Repo.clone_from(remotelink, gitdir, branch='data')
+
+datadir = os.path.join(gitdir, 'geodata.json')
+with open(datadir) as file:
     try:
-        geodata = pickle.load(file)
-    except EOFError:
+        geodata = json.load(file)
+    except json.JSONDecodeError:
         geodata = dict()
 
 weathericons = {'01' : u'\U00002600', 
@@ -67,7 +65,7 @@ def weather(message):
     bot.clear_step_handler_by_chat_id(chatid)
     
     global geodata
-    if geodata.get(message.chat.id) is None:
+    if geodata.get(str(chatid)) is None:
         curr_message = bot.send_message(chatid, 'напиши название города, в котором хочешь посмотреть погоду')
         bot.register_next_step_handler(curr_message, send_weather)
     else: 
@@ -77,7 +75,7 @@ def weather(message):
     
 def send_weather(message, getlocation = True):
     def updategit():
-        repo.index.add('geodata.p')
+        repo.index.add('geodata.json')
         repo.index.commit('current user data')
         repo.remote().push()
     
@@ -90,15 +88,15 @@ def send_weather(message, getlocation = True):
     global geodata
     if getlocation:
         lat, long = locate_city(message)
-        geodata[message.chat.id] = (lat, long)
+        geodata[str(message.chat.id)] = (lat, long)
         
-    weatherdata = get_weather(geodata[message.chat.id][0], geodata[message.chat.id][1])
+    weatherdata = get_weather(geodata[str(message.chat.id)][0], geodata[str(message.chat.id)][1])
     
-    with open('info.txt', 'w') as file:
+    with open(os.path.join(gitdir, 'info.txt'), 'w') as file:
         file.write(json.dumps(weatherdata))
         
-    with open(savefiledir, 'wb') as file:
-        pickle.dump(geodata, file)
+    with open(datadir, 'w') as file:
+        json.dump(geodata, file)
         
     updategit()
         
