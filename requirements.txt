@@ -2,3 +2,5 @@ Flask
 pyTelegramBotAPI 
 geopy 
 GitPython
+timezonefinder
+schedule
