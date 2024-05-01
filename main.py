@@ -105,8 +105,8 @@ def run_bot():
     
     for key, value in scheduleinfo.items():
         refmsg = bot.send_message(int(key), 'происходит перезапуск системы уведомлений', disable_notification=True)
-        tz = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
-        schedule.every().day.at(value[2], tz).do(weather, refmsg).tag(key)
+        timezone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
+        schedule.every().day.at(value[2], timezone).do(weather, refmsg).tag(key)
         bot.delete_message(int(key), refmsg.message_id)
 
 
