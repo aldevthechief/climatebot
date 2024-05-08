@@ -142,7 +142,6 @@ def run_bot():
         if gotlocation:
             try:
                 timezone = TimezoneFinder().timezone_at(lat=message.location.latitude, lng=message.location.longitude)
-                schedule.clear(chatid)
                 scheduleinfo.pop(chatid, None)
                 scheduleinfo[chatid] = [message.location.latitude, message.location.longitude, '']
             except AttributeError:
@@ -166,6 +165,7 @@ def run_bot():
             return
         
         try:
+            schedule.clear(str(message.chat.id))
             schedule.every().day.at(scheduledtime, timezone).do(weather, message).tag(str(message.chat.id))
         except: 
             bot.send_message(message.chat.id, 'не удалось распознать время, попробуй заново', reply_markup=timenotrecognized_markup())
