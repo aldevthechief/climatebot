@@ -403,5 +403,6 @@ if __name__ == '__main__':
     threading.Thread(target=run_bot).start()
     
     while True: 
+        print('lox', flush=True)
         schedule.run_pending()
         sleep(1)
