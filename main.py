@@ -16,6 +16,12 @@ import schedule
 from datetime import timedelta, date
 from timezonefinder import TimezoneFinder
 
+def run_schedule():
+    while True: 
+        print('lox', flush=True)
+        schedule.run_pending()
+        sleep(5)
+
 def run_bot():
     bot_token = os.environ.get('bot_token')
     weather_token = os.environ.get('weather_token')
@@ -401,9 +407,6 @@ def run_bot():
             
 if __name__ == '__main__':
     t1 = threading.Thread(target=run_bot)
+    t2 = threading.Thread(target=run_schedule)
     t1.start()
-    
-    while True: 
-        print('lox', flush=True)
-        schedule.run_pending()
-        sleep(1)
+    t2.start()
