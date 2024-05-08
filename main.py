@@ -16,12 +16,6 @@ import schedule
 from datetime import timedelta, date
 from timezonefinder import TimezoneFinder
 
-def run_schedule():
-    while True: 
-        schedule.run_pending()
-        sleep(1)
-
-
 def run_bot():
     bot_token = os.environ.get('bot_token')
     weather_token = os.environ.get('weather_token')
@@ -47,7 +41,7 @@ def run_bot():
         except json.JSONDecodeError: pass
 
     # for key in geodata.keys():
-    #     bot.send_message(int(key), 'меня наконец-то обновил мой хозяин, зацени /weather')
+    #     bot.send_message(int(key), 'мой хозяин решил меня пофиксить, зацени /weather')
         
     scheduleinfo = dict()   
     scheduledir = os.path.join(gitdir, 'scheduleinfo.json')
@@ -145,10 +139,14 @@ def run_bot():
         
         timezone = ''
         if gotlocation:
-            timezone = TimezoneFinder().timezone_at(lat=message.location.latitude, lng=message.location.longitude)
-            schedule.clear(chatid)
-            scheduleinfo.pop(chatid, None)
-            scheduleinfo[chatid] = [message.location.latitude, message.location.longitude, '']
+            try:
+                timezone = TimezoneFinder().timezone_at(lat=message.location.latitude, lng=message.location.longitude)
+                schedule.clear(chatid)
+                scheduleinfo.pop(chatid, None)
+                scheduleinfo[chatid] = [message.location.latitude, message.location.longitude, '']
+            except AttributeError:
+                bot.send_message(message.chat.id, 'не удалось распознать твою геолокацию, попробуй заново', reply_markup=locationnotrecognized_markup())
+                return
         else:
             timezone = TimezoneFinder().timezone_at(lat=scheduleinfo[chatid][0], lng=scheduleinfo[chatid][1])
         
@@ -158,7 +156,7 @@ def run_bot():
         
 
     def schedule_notification(message, timezone):
-        msgstr = message.text.replace('-', ':')
+        msgstr = message.text.replace('-', ':').replace(' ', '')
         
         try:
             scheduledtime = datetime.datetime.strptime(msgstr, '%H:%M').strftime('%H:%M')
@@ -341,9 +339,10 @@ def run_bot():
         elif call.data == 'new_setup_notification': 
             schtime = scheduleinfo.get(str(msg.chat.id), '   ')[2]
             choosestring = 'выбери действие с уведомлениями, которое ты хочешь сделать\n' + (f'\nна данный момент у тебя настроено ежедневное уведомление о погоде в {schtime}' if schtime != ' ' else '')
-            bot.edit_message_text(choosestring, msg.chat.id, msg.message_id)
-            bot.edit_message_reply_markup(msg.chat.id, msg.message_id, reply_markup=setup_notifs_markup())
-        elif call.data == 'new_create_notification': set_notification(msg)
+            bot.send_message(msg.chat.id, choosestring, reply_markup=setup_notifs_markup())
+        elif call.data == 'new_create_notification': 
+            set_notification(msg)
+            bot.delete_message(msg.chat.id, msg.message_id)
         elif call.data == 'new_delete_notification': clear_notification(msg)
         elif call.data == 'new_time' : set_notification(msg)
         elif call.data.isdigit(): send_daily_weather(msg, call)
@@ -374,6 +373,12 @@ def run_bot():
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton('ввести другое время', callback_data='new_time'))
         return markup
+    
+    
+    def locationnotrecognized_markup():
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton('отправить локацию заново', callback_data='new_create_notification'))
+        return markup
 
 
     def setup_notifs_markup():
@@ -394,4 +399,7 @@ def run_bot():
             
 if __name__ == '__main__':
     threading.Thread(target=run_bot).start()
-    threading.Thread(target=run_schedule).start()
+    
+    while True: 
+        schedule.run_pending()
+        sleep(1)
