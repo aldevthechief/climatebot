@@ -400,10 +400,9 @@ def run_bot():
         except Exception as _ex:
             print(_ex)
             sleep(15)
-            
-            
-if __name__ == '__main__':
-    t1 = threading.Thread(target=run_bot)
-    t2 = threading.Thread(target=run_schedule)
-    t2.start()
-    t1.start()
+
+
+t1 = threading.Thread(target=run_bot)
+t2 = threading.Thread(target=run_schedule)
+t2.start()
+t1.start()
