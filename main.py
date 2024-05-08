@@ -89,7 +89,6 @@ def run_bot():
 
     @bot.message_handler(commands=['weather'])
     def weather(message):
-        schedule.run_all()
         print(schedule.get_jobs(), datetime.datetime.now(), flush=True)
         chatid = message.chat.id
         bot.clear_step_handler_by_chat_id(chatid)
@@ -111,6 +110,7 @@ def run_bot():
 
     @bot.message_handler(commands=['dailyweather'])
     def daily_weather(message):
+        schedule.run_all()
         chatid = message.chat.id
         bot.clear_step_handler_by_chat_id(chatid)
         
