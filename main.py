@@ -89,7 +89,7 @@ def run_bot():
 
     @bot.message_handler(commands=['weather'])
     def weather(message):
-        print(schedule.get_jobs())
+        print(schedule.get_jobs(), flush=True)
         chatid = message.chat.id
         bot.clear_step_handler_by_chat_id(chatid)
         
