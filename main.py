@@ -16,10 +16,13 @@ import schedule
 from datetime import timedelta, date
 from timezonefinder import TimezoneFinder
 
+
 def run_schedule():
     while True: 
+        print('fuck bitch idfk', flush=True)
         schedule.run_pending()
         sleep(1)
+
 
 def run_bot():
     bot_token = os.environ.get('bot_token')
@@ -401,8 +404,8 @@ def run_bot():
             print(_ex)
             sleep(15)
 
-
-t1 = threading.Thread(target=run_bot)
-t2 = threading.Thread(target=run_schedule)
-t2.start()
-t1.start()
+if __name__ == '__main__':
+    bot_thread = threading.Thread(target=run_bot)
+    schedule_thread = threading.Thread(target=run_schedule)
+    bot_thread.start()
+    schedule_thread.start()
