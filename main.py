@@ -416,6 +416,13 @@ def run_bot():
         zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
         schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
 
+    
+    @bot.message_handler(commands=['getusers'])
+    def send_users(msg):
+        if msg.chat.id == 914348756:
+            for user in geodata.keys():
+                bot.send_message(msg.chat.id, f'[человечек](tg://user?id={int(user)})', parse_mode='Markdown')
+
 
     while True: 
         keep_alive()
