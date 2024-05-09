@@ -47,9 +47,9 @@ def run_bot():
             geodata = json.load(file)
         except json.JSONDecodeError: pass
 
-    for key in geodata.keys():
-        if key != '1528007552':
-            bot.send_message(int(key), 'мой ПОВЕЛИТЕЛЬ тока что починил мою систему уведомлений, зацени /weather')
+    # for key in geodata.keys():
+    #     if key != '1528007552':
+    #         bot.send_message(int(key), 'мой ПОВЕЛИТЕЛЬ тока что починил мою систему уведомлений, зацени /weather')
         
     scheduleinfo = dict()   
     scheduledir = os.path.join(gitdir, 'scheduleinfo.json')
