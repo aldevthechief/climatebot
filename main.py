@@ -138,13 +138,14 @@ def run_bot():
         if gotlocation:
             try:
                 timezone = TimezoneFinder().timezone_at(lat=message.location.latitude, lng=message.location.longitude)
-                scheduleinfo.pop(chatid, None)
+                scheduleinfo.pop(chatid)
                 scheduleinfo[chatid] = [message.location.latitude, message.location.longitude, '']
             except AttributeError:
                 bot.send_message(message.chat.id, 'не удалось распознать твою геолокацию, попробуй заново', reply_markup=locationnotrecognized_markup())
                 return
         else:
             timezone = TimezoneFinder().timezone_at(lat=scheduleinfo[chatid][0], lng=scheduleinfo[chatid][1])
+            
         
         askfortime = 'напиши мне время (в 24-х часовом формате), в которое ты хочешь каждый день получать уведомления'
         timemsg = bot.send_message(message.chat.id, askfortime, reply_markup=types.ReplyKeyboardRemove())
@@ -160,12 +161,8 @@ def run_bot():
             bot.send_message(message.chat.id, 'не удалось распознать время, попробуй заново', reply_markup=timenotrecognized_markup())
             return
         
-        try:
-            schedule.clear(str(message.chat.id))
-            schedule.every().day.at(scheduledtime, timezone).do(send_weather_notification, message.chat.id).tag(str(message.chat.id))
-        except: 
-            bot.send_message(message.chat.id, 'не удалось распознать время, попробуй заново', reply_markup=timenotrecognized_markup())
-            return
+        schedule.clear(str(message.chat.id))
+        schedule.every().day.at(scheduledtime, timezone).do(send_weather_notification, message.chat.id).tag(str(message.chat.id))
             
         scheduleinfo[str(message.chat.id)][2] = scheduledtime
         
@@ -217,9 +214,6 @@ def run_bot():
         except KeyError: 
             return
             
-        with open(geodatadir, 'w') as file:
-            json.dump(geodata, file)
-            
         iconstr = weatherdata['list'][0]['weather'][0]['icon'][:-1]
         description = 'сейчас ' + weatherdata['list'][0]['weather'][0]['description'] + ' ' + weathericons.get(iconstr, ' ') + '\n'
         temperature = '\n' + 'на улице ' + str(weatherdata['list'][0]['main']['temp']) + '°C,'
@@ -240,6 +234,7 @@ def run_bot():
             print(e, flush=True)
             pass
         
+        print(scheduleinfo, flush=True)
         zone = TimezoneFinder().timezone_at(lat=scheduleinfo[str(chatid)][0], lng=scheduleinfo[str(chatid)][1])
         schedule.every().day.at(scheduleinfo[str(chatid)][2], zone).do(send_weather_notification, chatid).tag(str(chatid))
         return
@@ -349,8 +344,8 @@ def run_bot():
             bot.edit_message_text('ты пока что не настроил ни одного уведомления', chatid, msg.message_id, reply_markup=base_keyboard_markup())
             return
         
-        scheduleinfo.pop(str(chatid), None)
         schedule.clear(str(chatid))
+        scheduleinfo.pop(str(chatid))
         bot.edit_message_text('твое уведомление успешно очищено', chatid, msg.message_id, reply_markup=base_keyboard_markup())
         
         with open(scheduledir, 'w') as file:
