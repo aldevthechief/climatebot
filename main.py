@@ -46,10 +46,7 @@ def run_bot():
         try:
             geodata = json.load(file)
         except json.JSONDecodeError: pass
-
-    # for key in geodata.keys():
-    #     if key != '1528007552':
-    #         bot.send_message(int(key), 'мой ПОВЕЛИТЕЛЬ тока что починил мою систему уведомлений, зацени /weather')
+
         
     scheduleinfo = dict()   
     scheduledir = os.path.join(gitdir, 'scheduleinfo.json')
@@ -415,14 +412,7 @@ def run_bot():
     for key, value in scheduleinfo.items():
         zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
         schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
-
-    
-    @bot.message_handler(commands=['getusers'])
-    def send_users(msg):
-        if msg.chat.id == 914348756:
-            for user in geodata.keys():
-                bot.send_message(msg.chat.id, f'[человечек](tg://user?id={int(user)})', parse_mode='Markdown')
-
+
 
     while True: 
         keep_alive()
