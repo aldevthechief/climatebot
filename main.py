@@ -379,7 +379,6 @@ def run_bot():
         markup.add(InlineKeyboardButton('погода сейчас', callback_data='new_weather'), 
                 InlineKeyboardButton('сменить локацию', callback_data='new_location'),
                 InlineKeyboardButton('прогноз погоды на 4 дня', callback_data='new_daily_weather'))
-        markup.add(InlineKeyboardButton('настроить уведомления о погоде', callback_data='new_setup_notification'))
         return markup
 
 
@@ -414,10 +413,10 @@ def run_bot():
         return markup
     
     
-    for key, value in scheduleinfo.items():
-        if not schedule.get_jobs(key):
-            zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
-            schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
+    # for key, value in scheduleinfo.items():
+    #     if not schedule.get_jobs(key):
+    #         zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
+    #         schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
 
 
     while True: 
