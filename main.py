@@ -138,7 +138,7 @@ def run_bot():
         if gotlocation:
             try:
                 timezone = TimezoneFinder().timezone_at(lat=message.location.latitude, lng=message.location.longitude)
-                scheduleinfo.pop(chatid)
+                scheduleinfo.pop(chatid, None)
                 scheduleinfo[chatid] = [message.location.latitude, message.location.longitude, '']
             except AttributeError:
                 bot.send_message(message.chat.id, 'не удалось распознать твою геолокацию, попробуй заново', reply_markup=locationnotrecognized_markup())
@@ -345,7 +345,7 @@ def run_bot():
             return
         
         schedule.clear(str(chatid))
-        scheduleinfo.pop(str(chatid))
+        scheduleinfo.pop(str(chatid), None)
         bot.edit_message_text('твое уведомление успешно очищено', chatid, msg.message_id, reply_markup=base_keyboard_markup())
         
         with open(scheduledir, 'w') as file:
