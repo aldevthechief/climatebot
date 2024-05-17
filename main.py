@@ -16,10 +16,10 @@ import schedule
 from datetime import timedelta, date
 from timezonefinder import TimezoneFinder
 
-first_run = True
+run_thread = True
 
 def run_schedule():
-    while True: 
+    while run_thread: 
         schedule.run_pending()
         sleep(1)
 
@@ -30,7 +30,7 @@ def run_bot():
     
     git_username = os.environ.get('git_username')
     git_token = os.environ.get('git_token')
-    
+        
     bot = telebot.TeleBot(bot_token, threaded=False)
 
     remotelink = f'https://{git_username}:{git_token}@github.com/aldevthechief/climate-bot.git'
@@ -157,9 +157,13 @@ def run_bot():
             bot.send_message(message.chat.id, 'не удалось распознать время, попробуй заново', reply_markup=timenotrecognized_markup())
             return
         
+        global run_thread
+        run_thread = False
+        
         schedule.clear(str(message.chat.id))
         schedule.every().day.at(scheduledtime, timezone).do(send_weather_notification, message.chat.id).tag(str(message.chat.id))
-        schedule.run_pending()
+        
+        run_thread = True
             
         scheduleinfo[str(message.chat.id)][2] = scheduledtime
         
@@ -329,9 +333,14 @@ def run_bot():
             bot.edit_message_text('ты пока что не настроил ни одного уведомления', chatid, msg.message_id, reply_markup=base_keyboard_markup())
             return
         
+        global run_thread
+        run_thread = False
+        
         schedule.clear(str(chatid))
         scheduleinfo.pop(str(chatid), None)
         bot.edit_message_text('твое уведомление успешно очищено', chatid, msg.message_id, reply_markup=base_keyboard_markup())
+        
+        run_thread = True
         
         with open(scheduledir, 'w') as file:
             json.dump(scheduleinfo, file)
@@ -399,16 +408,12 @@ def run_bot():
         return markup
     
     
-    global first_run
-    if first_run:
-        for key, value in scheduleinfo.items():
-            zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
-            schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
-            
-        schedule_thread = Thread(target=run_schedule)
-        schedule_thread.start()
+    for key, value in scheduleinfo.items():
+        zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
+        schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
         
-        first_run = False
+    schedule_thread = Thread(target=run_schedule)
+    schedule_thread.start()
 
 
     while True: 
