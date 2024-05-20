@@ -11,16 +11,18 @@ from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton
 from threading import Thread
 
-import datetime
-import schedule
+from scheduler import Scheduler
+import datetime as dt
 from datetime import timedelta, date
+import pytz
 from timezonefinder import TimezoneFinder
 
 run_thread = True
+sch = Scheduler(tzinfo=dt.timezone.utc)
 
 def run_schedule():
     while run_thread: 
-        schedule.run_pending()
+        sch.exec_jobs()
         sleep(1)
 
 
@@ -152,22 +154,24 @@ def run_bot():
         msgstr = message.text.replace('-', ':').replace(' ', '')
         
         try:
-            scheduledtime = datetime.datetime.strptime(msgstr, '%H:%M').strftime('%H:%M')
+            scheduledtime = dt.datetime.strptime(msgstr, '%H:%M').time()
         except ValueError:
             bot.send_message(message.chat.id, 'не удалось распознать время, попробуй заново', reply_markup=timenotrecognized_markup())
             return
         
+        dt_timezone = dt.timezone(dt.datetime.now(pytz.timezone(timezone)).utcoffset())
+        
         global run_thread
         run_thread = False
         
-        schedule.clear(str(message.chat.id))
-        schedule.every().day.at(scheduledtime, timezone).do(send_weather_notification, message.chat.id).tag(str(message.chat.id))
+        sch.delete_jobs({str(message.chat.id)})
+        sch.daily(scheduledtime.replace(tzinfo=dt_timezone), send_weather_notification, args=(message.chat.id,), tags={str(message.chat.id)})
         
         run_thread = True
             
-        scheduleinfo[str(message.chat.id)][2] = scheduledtime
+        scheduleinfo[str(message.chat.id)][2] = scheduledtime.strftime('%H:%M')
         
-        confirmmsg = f'отлично, теперь тебе ежедневно в {scheduledtime} будут приходить уведомления о погоде в выбранной локации'
+        confirmmsg = f"отлично, теперь тебе ежедневно в { scheduledtime.strftime('%H:%M') } будут приходить уведомления о погоде в выбранной локации"
         bot.send_message(message.chat.id, confirmmsg, reply_markup=base_keyboard_markup())    
         
         with open(scheduledir, 'w') as file:
@@ -300,7 +304,7 @@ def run_bot():
             
             dayweather = [mainweather, mainicon, (mintemp, maxtemp), round(avgtemp / divcount, 2), round(avgwind / divcount), maxprecip]
             
-            formatteddate = datetime.datetime.strptime(daydata[0]['dt_txt'].split()[0], '%Y-%m-%d').strftime('%d.%m.%Y')
+            formatteddate = dt.datetime.strptime(daydata[0]['dt_txt'].split()[0], '%Y-%m-%d').strftime('%d.%m.%Y')
             resinfo[formatteddate] = dayweather
             
         return resinfo
@@ -336,7 +340,7 @@ def run_bot():
         global run_thread
         run_thread = False
         
-        schedule.clear(str(chatid))
+        sch.delete_jobs({str(chatid)})
         scheduleinfo.pop(str(chatid), None)
         bot.edit_message_text('твое уведомление успешно очищено', chatid, msg.message_id, reply_markup=base_keyboard_markup())
         
@@ -410,7 +414,10 @@ def run_bot():
     
     for key, value in scheduleinfo.items():
         zone = TimezoneFinder().timezone_at(lat=scheduleinfo[key][0], lng=scheduleinfo[key][1])
-        schedule.every().day.at(value[2], zone).do(send_weather_notification, int(key)).tag(key)
+        dt_timezone = dt.timezone(dt.datetime.now(pytz.timezone(zone)).utcoffset())
+        
+        scheduletime = dt.datetime.strptime(value[2], '%H:%M').time().replace(tzinfo=dt_timezone)
+        sch.daily(scheduletime, send_weather_notification, args=(int(key),), tags={key})
         
     schedule_thread = Thread(target=run_schedule)
     schedule_thread.start()
