@@ -3,5 +3,5 @@ pyTelegramBotAPI
 geopy 
 GitPython
 timezonefinder
-schedule
+scheduler
 pytz
