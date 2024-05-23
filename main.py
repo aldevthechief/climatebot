@@ -35,7 +35,7 @@ def run_bot():
         
     bot = telebot.TeleBot(bot_token, threaded=False)
 
-    remotelink = f'https://{git_username}:{git_token}@github.com/aldevthechief/climate-bot.git'
+    remotelink = f'https://{git_username}:{git_token}@github.com/aldevthechief/climatebot-data.git'
     gitdir = os.path.join(os.getcwd(), 'data')
 
     try:
